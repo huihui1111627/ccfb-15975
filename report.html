@@ -1,0 +1,405 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>应用文件更新崩溃一致性检测报告</title><style>
+* { box-sizing: border-box; }
+body { margin:0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei",
+       "Segoe UI", sans-serif; background:#f4f6fa; color:#1f2733; }
+header { background:#14213d; color:#fff; padding:22px 32px; }
+header h1 { margin:0 0 6px; font-size:22px; }
+header .sub { color:#aebbd6; font-size:13px; }
+.wrap { max-width:1180px; margin:0 auto; padding:24px 28px 60px; }
+.cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+.card { background:#fff; border-radius:10px; padding:16px 20px; min-width:150px;
+        box-shadow:0 1px 3px rgba(20,33,61,.08); flex:1; }
+.card .num { font-size:28px; font-weight:700; }
+.card .lbl { color:#6b7689; font-size:12px; margin-top:4px; }
+.card.good .num { color:#1a8f4d; }
+.card.bad .num { color:#c0392b; }
+.card.warn .num { color:#d97706; }
+.tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; }
+.tab { padding:9px 16px; background:#e8ecf4; border-radius:8px 8px 0 0;
+       cursor:pointer; font-size:13px; border:1px solid transparent;
+       border-bottom:none; user-select:none; }
+.tab.active { background:#fff; border-color:#d6dce8; font-weight:600; }
+.tab .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+            margin-right:7px; }
+.dot.r { background:#c0392b; } .dot.g { background:#1a8f4d; }
+.panel { display:none; background:#fff; border:1px solid #d6dce8; border-radius:0 10px 10px 10px;
+         padding:24px 26px; }
+.panel.active { display:block; }
+h2 { font-size:17px; margin:0 0 6px; }
+h3 { font-size:14px; margin:22px 0 8px; color:#33405c; }
+.desc { color:#5b6678; font-size:13px; line-height:1.7; background:#f7f9fc;
+        border-left:3px solid #6c8cff; padding:10px 14px; border-radius:0 6px 6px 0; }
+table { border-collapse:collapse; width:100%; font-size:12.5px; margin-top:8px; }
+th,td { border:1px solid #e2e7f0; padding:7px 10px; text-align:left; }
+th { background:#f0f3f9; font-weight:600; color:#44506b; }
+tr:hover td { background:#fafbfe; }
+.seq-table td.seq { color:#8a94a8; width:42px; text-align:right; font-variant-numeric: tabular-nums; }
+.op { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; }
+.kind { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px;
+        font-weight:600; }
+.k-DATA { background:#e0edff; color:#1d56c2; }
+.k-DIRENT { background:#f3e6ff; color:#7a2fc0; }
+.k-SYNC { background:#d9f5e4; color:#127a3c; }
+.k-ACK { background:#fff0d6; color:#b06b00; }
+.barrier { height:5px; background:repeating-linear-gradient(45deg,#34c77b,#34c77b 6px,
+           #b8ebcf 6px,#b8ebcf 12px); border-radius:3px; margin:2px 0; }
+.fail { border:1px solid #f3c6c0; border-radius:10px; margin:14px 0; overflow:hidden; }
+.fail .head { background:#fdecea; padding:11px 16px; font-weight:600; color:#922b21;
+              font-size:13.5px; display:flex; justify-content:space-between; }
+.fail .body { padding:14px 18px; }
+.tagchip { display:inline-block; background:#c0392b; color:#fff; font-size:11px;
+           padding:2px 9px; border-radius:11px; margin-right:6px; }
+.advice { background:#f0f7ff; border:1px solid #c9ddff; border-radius:8px;
+          padding:12px 16px; margin-top:10px; }
+.advice li { margin:6px 0; line-height:1.65; font-size:13px; }
+.miss { font-family:ui-monospace,Menlo,monospace; color:#922b21; font-size:12px; }
+.disk { background:#1e2530; color:#d6e2f5; border-radius:8px; padding:12px 16px;
+        font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px;
+        white-space:pre; overflow-x:auto; margin-top:8px; }
+.ok-banner { background:#e7f8ee; border:1px solid #a9e2c2; color:#146c3a;
+             border-radius:10px; padding:16px 20px; font-weight:600; }
+.src { font-size:11px; color:#7a8499; }
+.pill { display:inline-block; padding:1px 8px; border-radius:9px; font-size:11px; }
+.pill.exhaustive { background:#e6f0ff; color:#1d56c2; }
+.pill.danger { background:#ffe8e6; color:#b3352a; }
+.pill.sampled { background:#f0ecff; color:#5d3fb8; }
+.pill.all-durable,.pill.all-lost { background:#eceff5; color:#55607a; }
+.pill.naive-all,.pill.naive-barrier { background:#fff2d9; color:#9a6a12; }
+.summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.muted { color:#8a94a8; font-size:12px; }
+.legend span { margin-right:16px; font-size:12px; color:#55607a; }
+</style></head><body>
+<header><h1>应用文件更新 · 崩溃一致性检测报告</h1>
+<div class="sub">仿真文件系统(页缓存/数据面-目录面分离/fsync 屏障语义) · 崩溃状态枚举 · 恢复逻辑校验 · delta-debug 最小重排</div>
+</header><div class="wrap">
+<div class="tabs"><div class="tab active" data-app="overview"
+onclick="showApp('overview')"><span class="dot g"></span>验收总览</div><div class="tab" data-app="overwrite_buggy" onclick="showApp('overwrite_buggy')"><span class="dot r"></span>直接覆盖写(无同步) —— 有缺陷</div><div class="tab" data-app="overwrite_correct" onclick="showApp('overwrite_correct')"><span class="dot g"></span>直接覆盖写(写后 fsync) —— 正确写法</div><div class="tab" data-app="temprename_buggy" onclick="showApp('temprename_buggy')"><span class="dot r"></span>临时文件+重命名(两处同步都缺) —— 有缺陷</div><div class="tab" data-app="temprename_partial" onclick="showApp('temprename_partial')"><span class="dot r"></span>临时文件+重命名(只 fsync 数据, 忘了目录) —— 有缺陷</div><div class="tab" data-app="temprename_correct" onclick="showApp('temprename_correct')"><span class="dot g"></span>临时文件+重命名(数据+目录双 fsync) —— 正确写法</div><div class="tab" data-app="logckpt_buggy" onclick="showApp('logckpt_buggy')"><span class="dot r"></span>追加日志+检查点(日志与检查点都不同步) —— 有缺陷</div><div class="tab" data-app="logckpt_correct" onclick="showApp('logckpt_correct')"><span class="dot g"></span>追加日志+检查点(append 同步 + 原子检查点) —— 正确写法</div><div class="tab" data-app="wal_buggy" onclick="showApp('wal_buggy')"><span class="dot r"></span>写前日志(COMMIT 未同步就改主文件) —— 有缺陷</div><div class="tab" data-app="wal_correct" onclick="showApp('wal_correct')"><span class="dot g"></span>写前日志(COMMIT fsync 后再改主文件) —— 正确写法</div></div>
+
+<div class="panel active" id="panel-overview">
+  <h2>验收总览</h2>
+  <div class="cards">
+    <div class="card good"><div class="num">8/8</div><div class="lbl">预埋缺陷检出(检出率 100%)</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">正确写法误报数(要求为 0)</div></div>
+    <div class="card warn"><div class="num">2</div><div class="lbl">朴素边界断电法漏检数</div></div>
+    <div class="card"><div class="num">186</div><div class="lbl">总崩溃状态数</div></div>
+    <div class="card"><div class="num">8.4 ms</div><div class="lbl">总耗时</div></div>
+  </div>
+  <table><tr><th>被测应用</th><th>更新模式</th><th>预埋缺陷</th><th>检出</th><th>漏检</th>
+    <th>误报</th><th>本工具状态数</th><th>朴素法状态数</th><th>耗时</th><th>检出率</th></tr><tr><td>直接覆盖写(无同步) —— 有缺陷</td><td>直接覆盖写</td><td>1</td><td>1</td><td>0</td><td>0</td><td>8</td><td>6</td><td>0.2 ms</td><td><span style="color:#1a8f4d;font-weight:600">100%</span></td></tr><tr><td>直接覆盖写(写后 fsync) —— 正确写法</td><td>直接覆盖写</td><td>0</td><td>0</td><td>0</td><td>0</td><td>7</td><td>6</td><td>0.1 ms</td><td><span class="muted">无预埋缺陷</span></td></tr><tr><td>临时文件+重命名(两处同步都缺) —— 有缺陷</td><td>临时文件+重命名</td><td>2</td><td>2</td><td>0</td><td>0</td><td>15</td><td>8</td><td>0.3 ms</td><td><span style="color:#1a8f4d;font-weight:600">100%</span></td></tr><tr><td>临时文件+重命名(只 fsync 数据, 忘了目录) —— 有缺陷</td><td>临时文件+重命名</td><td>1</td><td>1</td><td>0</td><td>0</td><td>13</td><td>10</td><td>0.4 ms</td><td><span style="color:#1a8f4d;font-weight:600">100%</span></td></tr><tr><td>临时文件+重命名(数据+目录双 fsync) —— 正确写法</td><td>临时文件+重命名</td><td>0</td><td>0</td><td>0</td><td>0</td><td>12</td><td>10</td><td>0.2 ms</td><td><span class="muted">无预埋缺陷</span></td></tr><tr><td>追加日志+检查点(日志与检查点都不同步) —— 有缺陷</td><td>追加日志+检查点</td><td>2</td><td>2</td><td>0</td><td>0</td><td>80</td><td>16</td><td>3.5 ms</td><td><span style="color:#1a8f4d;font-weight:600">100%</span></td></tr><tr><td>追加日志+检查点(append 同步 + 原子检查点) —— 正确写法</td><td>追加日志+检查点</td><td>0</td><td>0</td><td>0</td><td>0</td><td>23</td><td>21</td><td>1.0 ms</td><td><span class="muted">无预埋缺陷</span></td></tr><tr><td>写前日志(COMMIT 未同步就改主文件) —— 有缺陷</td><td>写前日志</td><td>2</td><td>2</td><td>0</td><td>0</td><td>18</td><td>8</td><td>0.3 ms</td><td><span style="color:#1a8f4d;font-weight:600">100%</span></td></tr><tr><td>写前日志(COMMIT fsync 后再改主文件) —— 正确写法</td><td>写前日志</td><td>0</td><td>0</td><td>0</td><td>0</td><td>10</td><td>9</td><td>0.2 ms</td><td><span class="muted">无预埋缺陷</span></td></tr></table>
+  <p class="desc" style="margin-top:16px">朴素方法只在操作边界处断电、不考虑数据面与目录面之间的重排,
+  因此无法发现"rename 先于数据落盘"和"WAL COMMIT 晚于主文件数据落盘"两类跨平面缺陷;
+  本工具通过组间独立持久化枚举 + 危险重排优先覆盖这些场景。</p>
+</div>
+<div class="panel" id="panel-overwrite_buggy">
+  <h2>直接覆盖写(无同步) —— 有缺陷</h2>
+  <p class="desc">truncate 到 0 后直接写新内容, 全程没有 fsync。截断与写入可能分别落盘, 断电时若截断已落盘而写入丢失, 文件变成空文件, 旧版本同时已被销毁。</p>
+  <div class="cards">
+    <div class="card "><div class="num">8</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">0.2 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card bad"><div class="num">1</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">6</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card bad"><div class="num">1</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=3 · all-lost=3 · danger=2</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DATA">TRUNCATE</span></td><td class="op">truncate(/state.db-&gt;0)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/state.db@0,&#x27;v1-new-content&#x27;)</td><td></td></tr><tr><td class="seq">2</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(update-to-v1)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">torn-overwrite</span> <span class="src">[崩溃点 #3 · 枚举来源: all-lost ]</span></span>
+       <span>最小丢失操作 1 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>覆盖写一致性(旧版本或新版本, 已确认写入不丢): /state.db 的内容 &#x27;v0-baseline&#x27; 既不是旧版本也不是合法新版本</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#1 write(/state.db@0,&#x27;v1-new-content&#x27;)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op">#0</td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/state.db&quot;: &quot;&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ 覆盖写 /state.db 缺少 fsync</div>
+    <div class="advice"><b>修复建议</b><ul><li>truncate 与 write 是两个独立落盘单位。在写入完成后、确认前调用 fsync(fd), 把数据和 inode 长度一起推盘; 更稳妥的做法是改用&#x27;临时文件 + fsync + rename + fsyncdir&#x27;的原子替换, 彻底消除截断后崩溃的空文件窗口。</li></ul></div>
+  </div>
+</div>
+</div>
+<div class="panel" id="panel-overwrite_correct">
+  <h2>直接覆盖写(写后 fsync) —— 正确写法</h2>
+  <p class="desc">同样 truncate+write, 但在向用户确认前 fsync 文件, 把截断和写入一起 推到磁盘。崩溃只可能发生在 fsync 之前(看到旧版本)或之后(看到新版本)。</p>
+  <div class="cards">
+    <div class="card "><div class="num">7</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">0.1 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">6</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=4 · all-lost=2 · danger=1</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DATA">TRUNCATE</span></td><td class="op">truncate(/state.db-&gt;0)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/state.db@0,&#x27;v1-new-content&#x27;)</td><td></td></tr><tr><td class="seq">2</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/state.db)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">3</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(update-to-v1)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3><div class="ok-banner">✓ 枚举了 7 个崩溃后磁盘状态, 恢复逻辑在所有状态下都满足应用声明的一致性条件, 零误报。</div>
+</div>
+<div class="panel" id="panel-temprename_buggy">
+  <h2>临时文件+重命名(两处同步都缺) —— 有缺陷</h2>
+  <p class="desc">写临时文件后直接 rename 替换正式文件, 既没有 fsync 临时文件, 也没有 fsync 父目录。rename 可能先于数据落盘产生空文件替换, rename 自身也可能整体丢失导致新文件不见。</p>
+  <div class="cards">
+    <div class="card "><div class="num">15</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">0.3 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card bad"><div class="num">2</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">8</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card bad"><div class="num">1</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=4 · all-lost=4 · danger=3 · exhaustive=4</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DIRENT">CREATE</span></td><td class="op">create(/config.yaml.tmp)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/config.yaml.tmp@0,&#x27;name: new\nversion: 2\n&#x27;)</td><td></td></tr><tr><td class="seq">2</td><td><span class="kind k-DIRENT">RENAME</span></td><td class="op">rename(/config.yaml.tmp-&gt;/config.yaml)</td><td></td></tr><tr><td class="seq">3</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(config-updated)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">rename-dir-not-fsynced</span> <span class="src">[崩溃点 #4 · 枚举来源: all-lost ]</span></span>
+       <span>最小丢失操作 1 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>更新已确认但 /config.yaml 仍是旧版本: rename 目录项未随目录同步,新文件整个不见</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#2 rename(/config.yaml.tmp-&gt;/config.yaml)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op">#0, #1</td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/config.yaml&quot;: &quot;name: old\nversion: 1\n&quot;,
+  &quot;/config.yaml.tmp&quot;: &quot;name: new\nversion: 2\n&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ 目录项变更后缺少 fsync(父目录)</div>
+    <div class="advice"><b>修复建议</b><ul><li>create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。</li></ul></div>
+  </div>
+</div>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">rename-empty-replacement</span> <span class="src">[崩溃点 #4 · 枚举来源: danger D1-rename-before-data]</span></span>
+       <span>最小丢失操作 1 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>/config.yaml 内容为 &#x27;&#x27;: rename 已生效但新数据未落盘, 旧版本已被替换</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#1 write(/config.yaml.tmp@0,&#x27;name: new\nversion: 2\n&#x27;)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op">#0, #2</td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/config.yaml&quot;: &quot;&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ rename(/config.yaml.tmp -&gt; /config.yaml) 之前缺少对源文件 /config.yaml.tmp 的 fsync</div><div class="miss">▸ 目录项变更后缺少 fsync(父目录)</div>
+    <div class="advice"><b>修复建议</b><ul><li>原子替换必须按固定顺序: 写临时文件 -&gt; fsync(临时文件 /config.yaml.tmp) -&gt; rename(/config.yaml.tmp, /config.yaml) -&gt; fsync(父目录)。rename 只保证目录项替换本身原子, 不保证被改名文件的数据已落盘; 当前场景下 rename 先于数据落盘, 空文件替换掉了完好的旧文件。</li><li>create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。</li></ul></div>
+  </div>
+</div>
+</div>
+<div class="panel" id="panel-temprename_partial">
+  <h2>临时文件+重命名(只 fsync 数据, 忘了目录) —— 有缺陷</h2>
+  <p class="desc">开发者记住了 fsync 临时文件, 却以为 rename 原子就够了、没同步父目录。空文件替换被消除, 但断电仍可能让整个 rename 丢失, 新文件不见。</p>
+  <div class="cards">
+    <div class="card "><div class="num">13</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">0.4 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card bad"><div class="num">1</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">10</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card bad"><div class="num">1</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=5 · all-lost=5 · danger=1 · exhaustive=2</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DIRENT">CREATE</span></td><td class="op">create(/config.yaml.tmp)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/config.yaml.tmp@0,&#x27;name: new\nversion: 2\n&#x27;)</td><td></td></tr><tr><td class="seq">2</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/config.yaml.tmp)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">3</td><td><span class="kind k-DIRENT">RENAME</span></td><td class="op">rename(/config.yaml.tmp-&gt;/config.yaml)</td><td></td></tr><tr><td class="seq">4</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(config-updated)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">rename-dir-not-fsynced</span> <span class="src">[崩溃点 #5 · 枚举来源: all-lost ]</span></span>
+       <span>最小丢失操作 1 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>更新已确认但仍为旧版本: rename 目录项未随目录同步落盘</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#3 rename(/config.yaml.tmp-&gt;/config.yaml)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op">#0, #1, #2</td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/config.yaml&quot;: &quot;name: old\nversion: 1\n&quot;,
+  &quot;/config.yaml.tmp&quot;: &quot;name: new\nversion: 2\n&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ 目录项变更后缺少 fsync(父目录)</div>
+    <div class="advice"><b>修复建议</b><ul><li>create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。</li></ul></div>
+  </div>
+</div>
+</div>
+<div class="panel" id="panel-temprename_correct">
+  <h2>临时文件+重命名(数据+目录双 fsync) —— 正确写法</h2>
+  <p class="desc">教科书式原子替换: 写临时文件 -&gt; fsync 临时文件(数据+inode) -&gt; rename -&gt; fsync 父目录(目录项)。崩溃后正式文件只可能是旧版或新版。</p>
+  <div class="cards">
+    <div class="card "><div class="num">12</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">0.2 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">10</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=6 · all-lost=4 · danger=1 · exhaustive=1</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DIRENT">CREATE</span></td><td class="op">create(/config.yaml.tmp)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/config.yaml.tmp@0,&#x27;name: new\nversion: 2\n&#x27;)</td><td></td></tr><tr><td class="seq">2</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/config.yaml.tmp)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">3</td><td><span class="kind k-DIRENT">RENAME</span></td><td class="op">rename(/config.yaml.tmp-&gt;/config.yaml)</td><td></td></tr><tr><td class="seq">4</td><td><span class="kind k-SYNC">FSYNCDIR</span></td><td class="op">fsyncdir(/)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">5</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(config-updated)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3><div class="ok-banner">✓ 枚举了 12 个崩溃后磁盘状态, 恢复逻辑在所有状态下都满足应用声明的一致性条件, 零误报。</div>
+</div>
+<div class="panel" id="panel-logckpt_buggy">
+  <h2>追加日志+检查点(日志与检查点都不同步) —— 有缺陷</h2>
+  <p class="desc">事件 append 后不 fsync 就 ack; checkpoint 直接覆盖写且不 fsync。断电可导致已确认事件丢失, 或截断的空 checkpoint 让服务拒绝启动。</p>
+  <div class="cards">
+    <div class="card "><div class="num">80</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">3.5 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card bad"><div class="num">2</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">16</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card bad"><div class="num">2</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=8 · all-lost=8 · danger=3 · exhaustive=61</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/events.log,&#x27;evt-1\n&#x27;)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(evt-1)</td><td></td></tr><tr><td class="seq">2</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/events.log,&#x27;evt-2\n&#x27;)</td><td></td></tr><tr><td class="seq">3</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(evt-2)</td><td></td></tr><tr><td class="seq">4</td><td><span class="kind k-DATA">TRUNCATE</span></td><td class="op">truncate(/state.ckpt-&gt;0)</td><td></td></tr><tr><td class="seq">5</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/state.ckpt@0,&#x27;snapshot@2&#x27;)</td><td></td></tr><tr><td class="seq">6</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/events.log,&#x27;evt-3\n&#x27;)</td><td></td></tr><tr><td class="seq">7</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(evt-3)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">acked-append-lost</span> <span class="src">[崩溃点 #2 · 枚举来源: all-lost ]</span></span>
+       <span>最小丢失操作 1 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>已确认事件丢失: 已 ack 1 条, 恢复只到 state@0</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#0 append(/events.log,&#x27;evt-1\n&#x27;)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op"></td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/events.log&quot;: &quot;&quot;,
+  &quot;/state.ckpt&quot;: &quot;snapshot@0&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ 追加写 /events.log 后、ack 之前缺少 fsync</div>
+    <div class="advice"><b>修复建议</b><ul><li>日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。</li></ul></div>
+  </div>
+</div>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">torn-checkpoint</span> <span class="src">[崩溃点 #5 · 枚举来源: all-durable ]</span></span>
+       <span>最小丢失操作 1 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>恢复逻辑拒绝启动: checkpoint 损坏且无可用快照</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#2 append(/events.log,&#x27;evt-2\n&#x27;)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op">#0, #4</td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/events.log&quot;: &quot;evt-1\n&quot;,
+  &quot;/state.ckpt&quot;: &quot;&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ 追加写 /events.log 后、ack 之前缺少 fsync</div>
+    <div class="advice"><b>修复建议</b><ul><li>日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。</li></ul></div>
+  </div>
+</div>
+</div>
+<div class="panel" id="panel-logckpt_correct">
+  <h2>追加日志+检查点(append 同步 + 原子检查点) —— 正确写法</h2>
+  <p class="desc">每条事件 append 后 fsync 日志再 ack; checkpoint 走 临时文件-&gt;fsync-&gt;rename-&gt;fsyncdir 的完整协议。崩溃后要么恢复到全部已确认事件, 要么停在确认前的旧状态, 永不出现空快照。</p>
+  <div class="cards">
+    <div class="card "><div class="num">23</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">1.0 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">21</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=14 · all-lost=7 · danger=1 · exhaustive=1</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/events.log,&#x27;evt-1\n&#x27;)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/events.log)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">2</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(evt-1)</td><td></td></tr><tr><td class="seq">3</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/events.log,&#x27;evt-2\n&#x27;)</td><td></td></tr><tr><td class="seq">4</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/events.log)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">5</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(evt-2)</td><td></td></tr><tr><td class="seq">6</td><td><span class="kind k-DIRENT">CREATE</span></td><td class="op">create(/state.ckpt.tmp)</td><td></td></tr><tr><td class="seq">7</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/state.ckpt.tmp@0,&#x27;snapshot@2&#x27;)</td><td></td></tr><tr><td class="seq">8</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/state.ckpt.tmp)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">9</td><td><span class="kind k-DIRENT">RENAME</span></td><td class="op">rename(/state.ckpt.tmp-&gt;/state.ckpt)</td><td></td></tr><tr><td class="seq">10</td><td><span class="kind k-SYNC">FSYNCDIR</span></td><td class="op">fsyncdir(/)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">11</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/events.log,&#x27;evt-3\n&#x27;)</td><td></td></tr><tr><td class="seq">12</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/events.log)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">13</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(evt-3)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3><div class="ok-banner">✓ 枚举了 23 个崩溃后磁盘状态, 恢复逻辑在所有状态下都满足应用声明的一致性条件, 零误报。</div>
+</div>
+<div class="panel" id="panel-wal_buggy">
+  <h2>写前日志(COMMIT 未同步就改主文件) —— 有缺陷</h2>
+  <p class="desc">日志追加 COMMIT 后直接截断重写主文件, 中间没有 fsync(wal), 主文件写完也不 fsync。断电时主文件已被截断而 COMMIT 丢失, 恢复时既看不到完整新值, 也没有可重放的事务。</p>
+  <div class="cards">
+    <div class="card "><div class="num">18</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">0.3 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card bad"><div class="num">2</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">8</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card bad"><div class="num">1</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=4 · all-lost=4 · danger=2 · exhaustive=8</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/kv.wal,&#x27;TXN1:SET key=new:COMMIT\n&#x27;)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-DATA">TRUNCATE</span></td><td class="op">truncate(/kv.db-&gt;0)</td><td></td></tr><tr><td class="seq">2</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/kv.db@0,&#x27;key=new&#x27;)</td><td></td></tr><tr><td class="seq">3</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(txn1-committed)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">wal-commit-not-durable</span> <span class="src">[崩溃点 #4 · 枚举来源: exhaustive ]</span></span>
+       <span>最小丢失操作 1 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>恢复失败: 主文件损坏且 WAL 中无可用 COMMIT</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#0 append(/kv.wal,&#x27;TXN1:SET key=new:COMMIT\n&#x27;)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op">#1, #2</td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/kv.db&quot;: &quot;key=new&quot;,
+  &quot;/kv.wal&quot;: &quot;&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ 追加写 /kv.wal 后、ack 之前缺少 fsync</div>
+    <div class="advice"><b>修复建议</b><ul><li>日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。</li></ul></div>
+  </div>
+</div>
+<div class="fail">
+  <div class="head"><span><span class="tagchip">main-torn-write</span> <span class="src">[崩溃点 #4 · 枚举来源: all-lost ]</span></span>
+       <span>最小丢失操作 3 个</span></div>
+  <div class="body">
+    <h3 style="margin-top:0">触发的一致性违规</h3><ul><li>事务已确认但恢复状态为 &#x27;key=old&#x27;, 已确认更新丢失</li></ul>
+    <h3>最小出问题的操作重排</h3>
+    <table><tr><th>丢失(未落盘)的操作</th><td class="op">#0 append(/kv.wal,&#x27;TXN1:SET key=new:COMMIT\n&#x27;), #1 truncate(/kv.db-&gt;0), #2 write(/kv.db@0,&#x27;key=new&#x27;)</td></tr>
+           <tr><th>仍落盘的操作</th><td class="op"></td></tr></table>
+    <h3>崩溃后磁盘上的实际内容</h3><div class="disk">{
+  &quot;/kv.db&quot;: &quot;key=old&quot;,
+  &quot;/kv.wal&quot;: &quot;&quot;
+}</div>
+    <h3>缺失的同步调用位置</h3><div class="miss">▸ 追加写 /kv.db、/kv.wal 后、ack 之前缺少 fsync</div>
+    <div class="advice"><b>修复建议</b><ul><li>日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。</li></ul></div>
+  </div>
+</div>
+</div>
+<div class="panel" id="panel-wal_correct">
+  <h2>写前日志(COMMIT fsync 后再改主文件) —— 正确写法</h2>
+  <p class="desc">append COMMIT -&gt; fsync(wal) -&gt; 截断重写主文件 -&gt; fsync(主文件)。任何时刻断电: 日志在则重放得到新值, 日志不在则主文件原封不动。</p>
+  <div class="cards">
+    <div class="card "><div class="num">10</div><div class="lbl">探索的崩溃状态数</div></div>
+    <div class="card"><div class="num">0.2 ms</div><div class="lbl">检测耗时</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">发现缺陷类别</div></div>
+    <div class="card"><div class="num">9</div><div class="lbl">朴素边界法状态数</div></div>
+    <div class="card good"><div class="num">0</div><div class="lbl">朴素边界法发现数</div></div>
+  </div>
+  <p class="muted">枚举来源分布: all-durable=6 · all-lost=3 · danger=1</p>
+  <h3>操作序列与同步点</h3>
+  <p class="legend">
+    <span><span class="kind k-DATA">数据面</span> write/append/truncate</span>
+    <span><span class="kind k-DIRENT">目录面</span> create/rename/delete</span>
+    <span><span class="kind k-SYNC">同步</span> fsync/fsyncdir</span>
+    <span><span class="kind k-ACK">确认</span> 应用 ack</span></p>
+  <table class="seq-table"><tr><th>#</th><th>类型</th><th>操作</th><th style="width:120px">同步屏障</th></tr><tr><td class="seq">0</td><td><span class="kind k-DATA">APPEND</span></td><td class="op">append(/kv.wal,&#x27;TXN1:SET key=new:COMMIT\n&#x27;)</td><td></td></tr><tr><td class="seq">1</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/kv.wal)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">2</td><td><span class="kind k-DATA">TRUNCATE</span></td><td class="op">truncate(/kv.db-&gt;0)</td><td></td></tr><tr><td class="seq">3</td><td><span class="kind k-DATA">WRITE</span></td><td class="op">write(/kv.db@0,&#x27;key=new&#x27;)</td><td></td></tr><tr><td class="seq">4</td><td><span class="kind k-SYNC">FSYNC</span></td><td class="op">fsync(/kv.db)</td><td><div class="barrier" title="同步屏障: 此前同平面操作保证落盘"></div></td></tr><tr><td class="seq">5</td><td><span class="kind k-ACK">ACK</span></td><td class="op">ack(txn1-committed)</td><td></td></tr></table>
+  <h3>出问题的重排与修复建议</h3><div class="ok-banner">✓ 枚举了 10 个崩溃后磁盘状态, 恢复逻辑在所有状态下都满足应用声明的一致性条件, 零误报。</div>
+</div>
+</div><script>
+function showApp(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.app===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));
+}
+</script></body></html>

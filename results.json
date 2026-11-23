@@ -1,0 +1,1430 @@
+{
+  "summary": {
+    "total_known": 8,
+    "total_found": 8,
+    "total_missed": 0,
+    "detection_rate": 100,
+    "false_positives": 0,
+    "naive_missed": 2,
+    "total_states": 186,
+    "total_elapsed_ms": 8.23,
+    "budget": 128,
+    "per_app": [
+      {
+        "name": "overwrite_buggy",
+        "title": "直接覆盖写(无同步) —— 有缺陷",
+        "pattern": "直接覆盖写",
+        "known": 1,
+        "found": 1,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [
+          "torn-overwrite"
+        ],
+        "found_tags": [
+          "torn-overwrite"
+        ],
+        "naive_found_tags": [
+          "torn-overwrite"
+        ],
+        "naive_missed_tags": [],
+        "states": 8,
+        "naive_states": 6,
+        "elapsed_ms": 0.2,
+        "naive_elapsed_ms": 0.09,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "overwrite_correct",
+        "title": "直接覆盖写(写后 fsync) —— 正确写法",
+        "pattern": "直接覆盖写",
+        "known": 0,
+        "found": 0,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [],
+        "found_tags": [],
+        "naive_found_tags": [],
+        "naive_missed_tags": [],
+        "states": 7,
+        "naive_states": 6,
+        "elapsed_ms": 0.11,
+        "naive_elapsed_ms": 0.05,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "temprename_buggy",
+        "title": "临时文件+重命名(两处同步都缺) —— 有缺陷",
+        "pattern": "临时文件+重命名",
+        "known": 2,
+        "found": 2,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [
+          "rename-dir-not-fsynced",
+          "rename-empty-replacement"
+        ],
+        "found_tags": [
+          "rename-dir-not-fsynced",
+          "rename-empty-replacement"
+        ],
+        "naive_found_tags": [
+          "rename-dir-not-fsynced"
+        ],
+        "naive_missed_tags": [
+          "rename-empty-replacement"
+        ],
+        "states": 15,
+        "naive_states": 8,
+        "elapsed_ms": 0.32,
+        "naive_elapsed_ms": 0.12,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "temprename_partial",
+        "title": "临时文件+重命名(只 fsync 数据, 忘了目录) —— 有缺陷",
+        "pattern": "临时文件+重命名",
+        "known": 1,
+        "found": 1,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [
+          "rename-dir-not-fsynced"
+        ],
+        "found_tags": [
+          "rename-dir-not-fsynced"
+        ],
+        "naive_found_tags": [
+          "rename-dir-not-fsynced"
+        ],
+        "naive_missed_tags": [],
+        "states": 13,
+        "naive_states": 10,
+        "elapsed_ms": 0.37,
+        "naive_elapsed_ms": 0.14,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "temprename_correct",
+        "title": "临时文件+重命名(数据+目录双 fsync) —— 正确写法",
+        "pattern": "临时文件+重命名",
+        "known": 0,
+        "found": 0,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [],
+        "found_tags": [],
+        "naive_found_tags": [],
+        "naive_missed_tags": [],
+        "states": 12,
+        "naive_states": 10,
+        "elapsed_ms": 0.24,
+        "naive_elapsed_ms": 0.09,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "logckpt_buggy",
+        "title": "追加日志+检查点(日志与检查点都不同步) —— 有缺陷",
+        "pattern": "追加日志+检查点",
+        "known": 2,
+        "found": 2,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [
+          "acked-append-lost",
+          "torn-checkpoint"
+        ],
+        "found_tags": [
+          "acked-append-lost",
+          "torn-checkpoint"
+        ],
+        "naive_found_tags": [
+          "acked-append-lost",
+          "torn-checkpoint"
+        ],
+        "naive_missed_tags": [],
+        "states": 80,
+        "naive_states": 16,
+        "elapsed_ms": 3.44,
+        "naive_elapsed_ms": 0.78,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "logckpt_correct",
+        "title": "追加日志+检查点(append 同步 + 原子检查点) —— 正确写法",
+        "pattern": "追加日志+检查点",
+        "known": 0,
+        "found": 0,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [],
+        "found_tags": [],
+        "naive_found_tags": [],
+        "naive_missed_tags": [],
+        "states": 23,
+        "naive_states": 21,
+        "elapsed_ms": 0.95,
+        "naive_elapsed_ms": 0.35,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "wal_buggy",
+        "title": "写前日志(COMMIT 未同步就改主文件) —— 有缺陷",
+        "pattern": "写前日志",
+        "known": 2,
+        "found": 2,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [
+          "main-torn-write",
+          "wal-commit-not-durable"
+        ],
+        "found_tags": [
+          "main-torn-write",
+          "wal-commit-not-durable"
+        ],
+        "naive_found_tags": [
+          "main-torn-write"
+        ],
+        "naive_missed_tags": [
+          "wal-commit-not-durable"
+        ],
+        "states": 18,
+        "naive_states": 8,
+        "elapsed_ms": 0.33,
+        "naive_elapsed_ms": 0.12,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      },
+      {
+        "name": "wal_correct",
+        "title": "写前日志(COMMIT fsync 后再改主文件) —— 正确写法",
+        "pattern": "写前日志",
+        "known": 0,
+        "found": 0,
+        "missed": 0,
+        "false_positives": 0,
+        "known_tags": [],
+        "found_tags": [],
+        "naive_found_tags": [],
+        "naive_missed_tags": [],
+        "states": 10,
+        "naive_states": 9,
+        "elapsed_ms": 0.23,
+        "naive_elapsed_ms": 0.09,
+        "skipped_by_budget": 0,
+        "detection_rate": 100
+      }
+    ]
+  },
+  "apps": [
+    {
+      "app_name": "overwrite_buggy",
+      "title": "直接覆盖写(无同步) —— 有缺陷",
+      "pattern": "直接覆盖写",
+      "description": "truncate 到 0 后直接写新内容, 全程没有 fsync。截断与写入可能分别落盘, 断电时若截断已落盘而写入丢失, 文件变成空文件, 旧版本同时已被销毁。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "TRUNCATE",
+          "text": "truncate(/state.db->0)",
+          "path": "/state.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "WRITE",
+          "text": "write(/state.db@0,'v1-new-content')",
+          "path": "/state.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "ACK",
+          "text": "ack(update-to-v1)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 8,
+      "elapsed_ms": 0.2,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 3,
+        "all-lost": 3,
+        "danger": 2
+      },
+      "known_defects": [
+        {
+          "tag": "torn-overwrite",
+          "summary": "覆盖写缺少 fsync, 断电后可能出现空文件/截断文件(旧版与新版都不在)"
+        }
+      ],
+      "failures": [
+        {
+          "crash_at": 3,
+          "tags": [
+            "torn-overwrite"
+          ],
+          "violations": [
+            {
+              "tag": "torn-overwrite",
+              "message": "覆盖写一致性(旧版本或新版本, 已确认写入不丢): /state.db 的内容 'v0-baseline' 既不是旧版本也不是合法新版本",
+              "detail": {
+                "path": "/state.db",
+                "content": "v0-baseline",
+                "allowed": "v1-new-content"
+              }
+            }
+          ],
+          "source": "all-lost",
+          "danger_tags": [],
+          "minimal_dropped": [
+            1
+          ],
+          "minimal_replay": [
+            0
+          ],
+          "advice": [
+            "truncate 与 write 是两个独立落盘单位。在写入完成后、确认前调用 fsync(fd), 把数据和 inode 长度一起推盘; 更稳妥的做法是改用'临时文件 + fsync + rename + fsyncdir'的原子替换, 彻底消除截断后崩溃的空文件窗口。"
+          ],
+          "missing_syncs": [
+            "覆盖写 /state.db 缺少 fsync"
+          ],
+          "disk_view": {
+            "/state.db": ""
+          }
+        }
+      ],
+      "naive_states": 6,
+      "naive_elapsed_ms": 0.09,
+      "naive_failures": [
+        {
+          "crash_at": 3,
+          "tags": [
+            "torn-overwrite"
+          ],
+          "violations": [
+            {
+              "tag": "torn-overwrite",
+              "message": "覆盖写一致性(旧版本或新版本, 已确认写入不丢): /state.db 的内容 'v0-baseline' 既不是旧版本也不是合法新版本",
+              "detail": {
+                "path": "/state.db",
+                "content": "v0-baseline",
+                "allowed": "v1-new-content"
+              }
+            }
+          ],
+          "source": "naive-barrier",
+          "danger_tags": [],
+          "minimal_dropped": [
+            1
+          ],
+          "minimal_replay": [
+            0,
+            2
+          ],
+          "advice": [
+            "truncate 与 write 是两个独立落盘单位。在写入完成后、确认前调用 fsync(fd), 把数据和 inode 长度一起推盘; 更稳妥的做法是改用'临时文件 + fsync + rename + fsyncdir'的原子替换, 彻底消除截断后崩溃的空文件窗口。"
+          ],
+          "missing_syncs": [
+            "覆盖写 /state.db 缺少 fsync"
+          ],
+          "disk_view": {
+            "/state.db": ""
+          }
+        }
+      ]
+    },
+    {
+      "app_name": "overwrite_correct",
+      "title": "直接覆盖写(写后 fsync) —— 正确写法",
+      "pattern": "直接覆盖写",
+      "description": "同样 truncate+write, 但在向用户确认前 fsync 文件, 把截断和写入一起 推到磁盘。崩溃只可能发生在 fsync 之前(看到旧版本)或之后(看到新版本)。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "TRUNCATE",
+          "text": "truncate(/state.db->0)",
+          "path": "/state.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "WRITE",
+          "text": "write(/state.db@0,'v1-new-content')",
+          "path": "/state.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "FSYNC",
+          "text": "fsync(/state.db)",
+          "path": "/state.db",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 3,
+          "kind": "ACK",
+          "text": "ack(update-to-v1)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 7,
+      "elapsed_ms": 0.11,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 4,
+        "all-lost": 2,
+        "danger": 1
+      },
+      "known_defects": [],
+      "failures": [],
+      "naive_states": 6,
+      "naive_elapsed_ms": 0.05,
+      "naive_failures": []
+    },
+    {
+      "app_name": "temprename_buggy",
+      "title": "临时文件+重命名(两处同步都缺) —— 有缺陷",
+      "pattern": "临时文件+重命名",
+      "description": "写临时文件后直接 rename 替换正式文件, 既没有 fsync 临时文件, 也没有 fsync 父目录。rename 可能先于数据落盘产生空文件替换, rename 自身也可能整体丢失导致新文件不见。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "CREATE",
+          "text": "create(/config.yaml.tmp)",
+          "path": "/config.yaml.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "WRITE",
+          "text": "write(/config.yaml.tmp@0,'name: new\\nversion: 2\\n')",
+          "path": "/config.yaml.tmp",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "RENAME",
+          "text": "rename(/config.yaml.tmp->/config.yaml)",
+          "path": "/config.yaml.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 3,
+          "kind": "ACK",
+          "text": "ack(config-updated)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 15,
+      "elapsed_ms": 0.32,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 4,
+        "all-lost": 4,
+        "danger": 3,
+        "exhaustive": 4
+      },
+      "known_defects": [
+        {
+          "tag": "rename-empty-replacement",
+          "summary": "rename 前未 fsync 临时文件, 重命名先于数据落盘 -> 空文件替换旧文件"
+        },
+        {
+          "tag": "rename-dir-not-fsynced",
+          "summary": "rename 后未 fsync 父目录, 目录项可能整体丢失 -> 新文件不见"
+        }
+      ],
+      "failures": [
+        {
+          "crash_at": 4,
+          "tags": [
+            "rename-dir-not-fsynced"
+          ],
+          "violations": [
+            {
+              "tag": "rename-dir-not-fsynced",
+              "message": "更新已确认但 /config.yaml 仍是旧版本: rename 目录项未随目录同步,新文件整个不见",
+              "detail": {
+                "path": "/config.yaml"
+              }
+            }
+          ],
+          "source": "all-lost",
+          "danger_tags": [],
+          "minimal_dropped": [
+            2
+          ],
+          "minimal_replay": [
+            0,
+            1
+          ],
+          "advice": [
+            "create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。"
+          ],
+          "missing_syncs": [
+            "目录项变更后缺少 fsync(父目录)"
+          ],
+          "disk_view": {
+            "/config.yaml": "name: old\nversion: 1\n",
+            "/config.yaml.tmp": "name: new\nversion: 2\n"
+          }
+        },
+        {
+          "crash_at": 4,
+          "tags": [
+            "rename-empty-replacement"
+          ],
+          "violations": [
+            {
+              "tag": "rename-empty-replacement",
+              "message": "/config.yaml 内容为 '': rename 已生效但新数据未落盘, 旧版本已被替换",
+              "detail": {
+                "path": "/config.yaml",
+                "content": ""
+              }
+            }
+          ],
+          "source": "danger",
+          "danger_tags": [
+            "D1-rename-before-data"
+          ],
+          "minimal_dropped": [
+            1
+          ],
+          "minimal_replay": [
+            0,
+            2
+          ],
+          "advice": [
+            "原子替换必须按固定顺序: 写临时文件 -> fsync(临时文件 /config.yaml.tmp) -> rename(/config.yaml.tmp, /config.yaml) -> fsync(父目录)。rename 只保证目录项替换本身原子, 不保证被改名文件的数据已落盘; 当前场景下 rename 先于数据落盘, 空文件替换掉了完好的旧文件。",
+            "create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。"
+          ],
+          "missing_syncs": [
+            "rename(/config.yaml.tmp -> /config.yaml) 之前缺少对源文件 /config.yaml.tmp 的 fsync",
+            "目录项变更后缺少 fsync(父目录)"
+          ],
+          "disk_view": {
+            "/config.yaml": ""
+          }
+        }
+      ],
+      "naive_states": 8,
+      "naive_elapsed_ms": 0.12,
+      "naive_failures": [
+        {
+          "crash_at": 4,
+          "tags": [
+            "rename-dir-not-fsynced"
+          ],
+          "violations": [
+            {
+              "tag": "rename-dir-not-fsynced",
+              "message": "更新已确认但 /config.yaml 仍是旧版本: rename 目录项未随目录同步,新文件整个不见",
+              "detail": {
+                "path": "/config.yaml"
+              }
+            }
+          ],
+          "source": "naive-barrier",
+          "danger_tags": [],
+          "minimal_dropped": [
+            2
+          ],
+          "minimal_replay": [
+            0,
+            1,
+            3
+          ],
+          "advice": [
+            "create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。"
+          ],
+          "missing_syncs": [
+            "目录项变更后缺少 fsync(父目录)"
+          ],
+          "disk_view": {
+            "/config.yaml": "name: old\nversion: 1\n",
+            "/config.yaml.tmp": "name: new\nversion: 2\n"
+          }
+        }
+      ]
+    },
+    {
+      "app_name": "temprename_partial",
+      "title": "临时文件+重命名(只 fsync 数据, 忘了目录) —— 有缺陷",
+      "pattern": "临时文件+重命名",
+      "description": "开发者记住了 fsync 临时文件, 却以为 rename 原子就够了、没同步父目录。空文件替换被消除, 但断电仍可能让整个 rename 丢失, 新文件不见。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "CREATE",
+          "text": "create(/config.yaml.tmp)",
+          "path": "/config.yaml.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "WRITE",
+          "text": "write(/config.yaml.tmp@0,'name: new\\nversion: 2\\n')",
+          "path": "/config.yaml.tmp",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "FSYNC",
+          "text": "fsync(/config.yaml.tmp)",
+          "path": "/config.yaml.tmp",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 3,
+          "kind": "RENAME",
+          "text": "rename(/config.yaml.tmp->/config.yaml)",
+          "path": "/config.yaml.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 4,
+          "kind": "ACK",
+          "text": "ack(config-updated)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 13,
+      "elapsed_ms": 0.37,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 5,
+        "all-lost": 5,
+        "danger": 1,
+        "exhaustive": 2
+      },
+      "known_defects": [
+        {
+          "tag": "rename-dir-not-fsynced",
+          "summary": "rename 后未 fsync 父目录, 目录项可能整体丢失 -> 新文件不见"
+        }
+      ],
+      "failures": [
+        {
+          "crash_at": 5,
+          "tags": [
+            "rename-dir-not-fsynced"
+          ],
+          "violations": [
+            {
+              "tag": "rename-dir-not-fsynced",
+              "message": "更新已确认但仍为旧版本: rename 目录项未随目录同步落盘",
+              "detail": {
+                "path": "/config.yaml"
+              }
+            }
+          ],
+          "source": "all-lost",
+          "danger_tags": [],
+          "minimal_dropped": [
+            3
+          ],
+          "minimal_replay": [
+            0,
+            1,
+            2
+          ],
+          "advice": [
+            "create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。"
+          ],
+          "missing_syncs": [
+            "目录项变更后缺少 fsync(父目录)"
+          ],
+          "disk_view": {
+            "/config.yaml": "name: old\nversion: 1\n",
+            "/config.yaml.tmp": "name: new\nversion: 2\n"
+          }
+        }
+      ],
+      "naive_states": 10,
+      "naive_elapsed_ms": 0.14,
+      "naive_failures": [
+        {
+          "crash_at": 5,
+          "tags": [
+            "rename-dir-not-fsynced"
+          ],
+          "violations": [
+            {
+              "tag": "rename-dir-not-fsynced",
+              "message": "更新已确认但仍为旧版本: rename 目录项未随目录同步落盘",
+              "detail": {
+                "path": "/config.yaml"
+              }
+            }
+          ],
+          "source": "naive-barrier",
+          "danger_tags": [],
+          "minimal_dropped": [
+            3
+          ],
+          "minimal_replay": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "advice": [
+            "create/rename/delete 之后必须打开父目录并 fsync 该目录 fd(POSIX: dirfd=open(dir, O_RDONLY); fsync(dirfd)); 不同步目录, 断电时目录项变更整体回滚, 表现为新建文件整个不见、rename 像从未发生。"
+          ],
+          "missing_syncs": [
+            "目录项变更后缺少 fsync(父目录)"
+          ],
+          "disk_view": {
+            "/config.yaml": "name: old\nversion: 1\n",
+            "/config.yaml.tmp": "name: new\nversion: 2\n"
+          }
+        }
+      ]
+    },
+    {
+      "app_name": "temprename_correct",
+      "title": "临时文件+重命名(数据+目录双 fsync) —— 正确写法",
+      "pattern": "临时文件+重命名",
+      "description": "教科书式原子替换: 写临时文件 -> fsync 临时文件(数据+inode) -> rename -> fsync 父目录(目录项)。崩溃后正式文件只可能是旧版或新版。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "CREATE",
+          "text": "create(/config.yaml.tmp)",
+          "path": "/config.yaml.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "WRITE",
+          "text": "write(/config.yaml.tmp@0,'name: new\\nversion: 2\\n')",
+          "path": "/config.yaml.tmp",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "FSYNC",
+          "text": "fsync(/config.yaml.tmp)",
+          "path": "/config.yaml.tmp",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 3,
+          "kind": "RENAME",
+          "text": "rename(/config.yaml.tmp->/config.yaml)",
+          "path": "/config.yaml.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 4,
+          "kind": "FSYNCDIR",
+          "text": "fsyncdir(/)",
+          "path": null,
+          "dir": "/",
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 5,
+          "kind": "ACK",
+          "text": "ack(config-updated)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 12,
+      "elapsed_ms": 0.24,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 6,
+        "all-lost": 4,
+        "danger": 1,
+        "exhaustive": 1
+      },
+      "known_defects": [],
+      "failures": [],
+      "naive_states": 10,
+      "naive_elapsed_ms": 0.09,
+      "naive_failures": []
+    },
+    {
+      "app_name": "logckpt_buggy",
+      "title": "追加日志+检查点(日志与检查点都不同步) —— 有缺陷",
+      "pattern": "追加日志+检查点",
+      "description": "事件 append 后不 fsync 就 ack; checkpoint 直接覆盖写且不 fsync。断电可导致已确认事件丢失, 或截断的空 checkpoint 让服务拒绝启动。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "APPEND",
+          "text": "append(/events.log,'evt-1\\n')",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "ACK",
+          "text": "ack(evt-1)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        },
+        {
+          "seq": 2,
+          "kind": "APPEND",
+          "text": "append(/events.log,'evt-2\\n')",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 3,
+          "kind": "ACK",
+          "text": "ack(evt-2)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        },
+        {
+          "seq": 4,
+          "kind": "TRUNCATE",
+          "text": "truncate(/state.ckpt->0)",
+          "path": "/state.ckpt",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 5,
+          "kind": "WRITE",
+          "text": "write(/state.ckpt@0,'snapshot@2')",
+          "path": "/state.ckpt",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 6,
+          "kind": "APPEND",
+          "text": "append(/events.log,'evt-3\\n')",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 7,
+          "kind": "ACK",
+          "text": "ack(evt-3)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 80,
+      "elapsed_ms": 3.44,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 8,
+        "all-lost": 8,
+        "exhaustive": 61,
+        "danger": 3
+      },
+      "known_defects": [
+        {
+          "tag": "acked-append-lost",
+          "summary": "日志 append 后未 fsync 即确认, 断电丢失已确认写入"
+        },
+        {
+          "tag": "torn-checkpoint",
+          "summary": "checkpoint 覆盖写无 fsync, 截断先于内容落盘 -> 空快照, 恢复失败"
+        }
+      ],
+      "failures": [
+        {
+          "crash_at": 2,
+          "tags": [
+            "acked-append-lost"
+          ],
+          "violations": [
+            {
+              "tag": "acked-append-lost",
+              "message": "已确认事件丢失: 已 ack 1 条, 恢复只到 state@0",
+              "detail": {
+                "recovered": "state@0",
+                "required": "state@1"
+              }
+            }
+          ],
+          "source": "all-lost",
+          "danger_tags": [],
+          "minimal_dropped": [
+            0
+          ],
+          "minimal_replay": [],
+          "advice": [
+            "日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。"
+          ],
+          "missing_syncs": [
+            "追加写 /events.log 后、ack 之前缺少 fsync"
+          ],
+          "disk_view": {
+            "/events.log": "",
+            "/state.ckpt": "snapshot@0"
+          }
+        },
+        {
+          "crash_at": 5,
+          "tags": [
+            "torn-checkpoint"
+          ],
+          "violations": [
+            {
+              "tag": "torn-checkpoint",
+              "message": "恢复逻辑拒绝启动: checkpoint 损坏且无可用快照",
+              "detail": {}
+            }
+          ],
+          "source": "all-durable",
+          "danger_tags": [],
+          "minimal_dropped": [
+            2
+          ],
+          "minimal_replay": [
+            0,
+            4
+          ],
+          "advice": [
+            "日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。"
+          ],
+          "missing_syncs": [
+            "追加写 /events.log 后、ack 之前缺少 fsync"
+          ],
+          "disk_view": {
+            "/events.log": "evt-1\n",
+            "/state.ckpt": ""
+          }
+        }
+      ],
+      "naive_states": 16,
+      "naive_elapsed_ms": 0.78,
+      "naive_failures": [
+        {
+          "crash_at": 2,
+          "tags": [
+            "acked-append-lost"
+          ],
+          "violations": [
+            {
+              "tag": "acked-append-lost",
+              "message": "已确认事件丢失: 已 ack 1 条, 恢复只到 state@0",
+              "detail": {
+                "recovered": "state@0",
+                "required": "state@1"
+              }
+            }
+          ],
+          "source": "naive-barrier",
+          "danger_tags": [],
+          "minimal_dropped": [
+            0
+          ],
+          "minimal_replay": [
+            1
+          ],
+          "advice": [
+            "日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。"
+          ],
+          "missing_syncs": [
+            "追加写 /events.log 后、ack 之前缺少 fsync"
+          ],
+          "disk_view": {
+            "/events.log": "",
+            "/state.ckpt": "snapshot@0"
+          }
+        },
+        {
+          "crash_at": 5,
+          "tags": [
+            "torn-checkpoint"
+          ],
+          "violations": [
+            {
+              "tag": "torn-checkpoint",
+              "message": "恢复逻辑拒绝启动: checkpoint 损坏且无可用快照",
+              "detail": {}
+            }
+          ],
+          "source": "naive-all",
+          "danger_tags": [],
+          "minimal_dropped": [
+            3
+          ],
+          "minimal_replay": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "advice": [
+            "核对同步屏障覆盖范围: 只有同步调用之前的同平面操作才保证落盘, 屏障之后的新操作需要再次同步。"
+          ],
+          "missing_syncs": [],
+          "disk_view": {
+            "/events.log": "evt-1\nevt-2\n",
+            "/state.ckpt": ""
+          }
+        }
+      ]
+    },
+    {
+      "app_name": "logckpt_correct",
+      "title": "追加日志+检查点(append 同步 + 原子检查点) —— 正确写法",
+      "pattern": "追加日志+检查点",
+      "description": "每条事件 append 后 fsync 日志再 ack; checkpoint 走 临时文件->fsync->rename->fsyncdir 的完整协议。崩溃后要么恢复到全部已确认事件, 要么停在确认前的旧状态, 永不出现空快照。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "APPEND",
+          "text": "append(/events.log,'evt-1\\n')",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "FSYNC",
+          "text": "fsync(/events.log)",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "ACK",
+          "text": "ack(evt-1)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        },
+        {
+          "seq": 3,
+          "kind": "APPEND",
+          "text": "append(/events.log,'evt-2\\n')",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 4,
+          "kind": "FSYNC",
+          "text": "fsync(/events.log)",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 5,
+          "kind": "ACK",
+          "text": "ack(evt-2)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        },
+        {
+          "seq": 6,
+          "kind": "CREATE",
+          "text": "create(/state.ckpt.tmp)",
+          "path": "/state.ckpt.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 7,
+          "kind": "WRITE",
+          "text": "write(/state.ckpt.tmp@0,'snapshot@2')",
+          "path": "/state.ckpt.tmp",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 8,
+          "kind": "FSYNC",
+          "text": "fsync(/state.ckpt.tmp)",
+          "path": "/state.ckpt.tmp",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 9,
+          "kind": "RENAME",
+          "text": "rename(/state.ckpt.tmp->/state.ckpt)",
+          "path": "/state.ckpt.tmp",
+          "dir": "/",
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 10,
+          "kind": "FSYNCDIR",
+          "text": "fsyncdir(/)",
+          "path": null,
+          "dir": "/",
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 11,
+          "kind": "APPEND",
+          "text": "append(/events.log,'evt-3\\n')",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 12,
+          "kind": "FSYNC",
+          "text": "fsync(/events.log)",
+          "path": "/events.log",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 13,
+          "kind": "ACK",
+          "text": "ack(evt-3)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 23,
+      "elapsed_ms": 0.95,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 14,
+        "all-lost": 7,
+        "danger": 1,
+        "exhaustive": 1
+      },
+      "known_defects": [],
+      "failures": [],
+      "naive_states": 21,
+      "naive_elapsed_ms": 0.35,
+      "naive_failures": []
+    },
+    {
+      "app_name": "wal_buggy",
+      "title": "写前日志(COMMIT 未同步就改主文件) —— 有缺陷",
+      "pattern": "写前日志",
+      "description": "日志追加 COMMIT 后直接截断重写主文件, 中间没有 fsync(wal), 主文件写完也不 fsync。断电时主文件已被截断而 COMMIT 丢失, 恢复时既看不到完整新值, 也没有可重放的事务。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "APPEND",
+          "text": "append(/kv.wal,'TXN1:SET key=new:COMMIT\\n')",
+          "path": "/kv.wal",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "TRUNCATE",
+          "text": "truncate(/kv.db->0)",
+          "path": "/kv.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "WRITE",
+          "text": "write(/kv.db@0,'key=new')",
+          "path": "/kv.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 3,
+          "kind": "ACK",
+          "text": "ack(txn1-committed)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 18,
+      "elapsed_ms": 0.33,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 4,
+        "all-lost": 4,
+        "exhaustive": 8,
+        "danger": 2
+      },
+      "known_defects": [
+        {
+          "tag": "wal-commit-not-durable",
+          "summary": "WAL COMMIT 未 fsync 即修改主文件, 日志可能晚于/少于数据落盘"
+        },
+        {
+          "tag": "main-torn-write",
+          "summary": "主文件截断+写无 fsync, 可产生空/半截主文件"
+        }
+      ],
+      "failures": [
+        {
+          "crash_at": 4,
+          "tags": [
+            "wal-commit-not-durable"
+          ],
+          "violations": [
+            {
+              "tag": "wal-commit-not-durable",
+              "message": "恢复失败: 主文件损坏且 WAL 中无可用 COMMIT",
+              "detail": {}
+            }
+          ],
+          "source": "exhaustive",
+          "danger_tags": [],
+          "minimal_dropped": [
+            0
+          ],
+          "minimal_replay": [
+            1,
+            2
+          ],
+          "advice": [
+            "日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。"
+          ],
+          "missing_syncs": [
+            "追加写 /kv.wal 后、ack 之前缺少 fsync"
+          ],
+          "disk_view": {
+            "/kv.db": "key=new",
+            "/kv.wal": ""
+          }
+        },
+        {
+          "crash_at": 4,
+          "tags": [
+            "main-torn-write"
+          ],
+          "violations": [
+            {
+              "tag": "main-torn-write",
+              "message": "事务已确认但恢复状态为 'key=old', 已确认更新丢失",
+              "detail": {}
+            }
+          ],
+          "source": "all-lost",
+          "danger_tags": [],
+          "minimal_dropped": [
+            0,
+            1,
+            2
+          ],
+          "minimal_replay": [],
+          "advice": [
+            "日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。"
+          ],
+          "missing_syncs": [
+            "追加写 /kv.db、/kv.wal 后、ack 之前缺少 fsync"
+          ],
+          "disk_view": {
+            "/kv.db": "key=old",
+            "/kv.wal": ""
+          }
+        }
+      ],
+      "naive_states": 8,
+      "naive_elapsed_ms": 0.12,
+      "naive_failures": [
+        {
+          "crash_at": 4,
+          "tags": [
+            "main-torn-write"
+          ],
+          "violations": [
+            {
+              "tag": "main-torn-write",
+              "message": "事务已确认但恢复状态为 'key=old', 已确认更新丢失",
+              "detail": {}
+            }
+          ],
+          "source": "naive-barrier",
+          "danger_tags": [],
+          "minimal_dropped": [
+            0,
+            1,
+            2
+          ],
+          "minimal_replay": [
+            3
+          ],
+          "advice": [
+            "日志类文件每次 append 之后、向调用方返回成功之前必须 fsync(fd); 否则追加内容可能整段停留在页缓存, 断电后表现为已确认的写入整条消失, 且没有任何报错。"
+          ],
+          "missing_syncs": [
+            "追加写 /kv.db、/kv.wal 后、ack 之前缺少 fsync"
+          ],
+          "disk_view": {
+            "/kv.db": "key=old",
+            "/kv.wal": ""
+          }
+        }
+      ]
+    },
+    {
+      "app_name": "wal_correct",
+      "title": "写前日志(COMMIT fsync 后再改主文件) —— 正确写法",
+      "pattern": "写前日志",
+      "description": "append COMMIT -> fsync(wal) -> 截断重写主文件 -> fsync(主文件)。任何时刻断电: 日志在则重放得到新值, 日志不在则主文件原封不动。",
+      "operations": [
+        {
+          "seq": 0,
+          "kind": "APPEND",
+          "text": "append(/kv.wal,'TXN1:SET key=new:COMMIT\\n')",
+          "path": "/kv.wal",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 1,
+          "kind": "FSYNC",
+          "text": "fsync(/kv.wal)",
+          "path": "/kv.wal",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 2,
+          "kind": "TRUNCATE",
+          "text": "truncate(/kv.db->0)",
+          "path": "/kv.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 3,
+          "kind": "WRITE",
+          "text": "write(/kv.db@0,'key=new')",
+          "path": "/kv.db",
+          "dir": null,
+          "is_sync": false,
+          "is_ack": false
+        },
+        {
+          "seq": 4,
+          "kind": "FSYNC",
+          "text": "fsync(/kv.db)",
+          "path": "/kv.db",
+          "dir": null,
+          "is_sync": true,
+          "is_ack": false
+        },
+        {
+          "seq": 5,
+          "kind": "ACK",
+          "text": "ack(txn1-committed)",
+          "path": null,
+          "dir": null,
+          "is_sync": false,
+          "is_ack": true
+        }
+      ],
+      "states_explored": 10,
+      "elapsed_ms": 0.23,
+      "skipped_by_budget": 0,
+      "sources": {
+        "all-durable": 6,
+        "all-lost": 3,
+        "danger": 1
+      },
+      "known_defects": [],
+      "failures": [],
+      "naive_states": 9,
+      "naive_elapsed_ms": 0.09,
+      "naive_failures": []
+    }
+  ]
+}
